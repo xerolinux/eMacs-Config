@@ -1,0 +1,20 @@
+emacs :
+
+$AUR_HELPER -- noconfirm --needed emacs ttf-ubuntu-font-family ttf-jetbrains-mono-nerd ttf-jetbrains-mono
+
+cd ~ && git clone https://github.com/xerolinux/emacs && cd emacs/ && cp -R emacs/ $HOME/.config
+
+Doom :
+
+$AUR_HELPER -- noconfirm --needed emacs ttf-ubuntu-font-family ttf-jetbrains-mono-nerd ttf-jetbrains-mono ripgrep fd aspell hlint hoogle python-isort python-pipenv python-nose-timer python-pytest rust tidy stylelint js-beautify composer emacs-haskell-mode
+
+cd ~ && git clone https://github.com/xerolinux/emacs && cd emacs/ && cp -R doom/ $HOME/.config
+git clone https://github.com/hlissner/doom-emacs ~/.emacs.d && ~/.emacs.d/bin/doom install
+
+if [ -n "$ZSH_VERSION" ]; then
+  echo -e '\n# Add Doom Emacs to PATH\nexport PATH="$HOME/.emacs.d/bin:$PATH"' >> ~/.zshrc;
+elif [ -n "$BASH_VERSION" ]; then
+  echo -e '\n# Add Doom Emacs to PATH\nexport PATH="$HOME/.emacs.d/bin:$PATH"' >> ~/.bashrc;
+fi
+
+sh $HOME/.emacs.d/bin/doom sync
