@@ -1,0 +1,9 @@
+ls 
+find-file .bashrc 
+exit
+cat .bashrc
+rr
+ls
+clear
+yes
+ls

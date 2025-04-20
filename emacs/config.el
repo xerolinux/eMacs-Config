@@ -1,8 +1,9 @@
 (add-to-list 'load-path "~/.config/emacs/scripts/")
 
 (require 'elpaca-setup)  ;; The Elpaca Package Manager
-(require 'buffer-move)   ;; Buffer-move for better window management
 (require 'app-launchers) ;; Use emacs as a run launcher like dmenu (experimental)
+(require 'buffer-move)   ;; Buffer-move for better window management
+(require 'eshell-prompt) ;; A fancy prompt for eshell
 
 (use-package all-the-icons
   :ensure t
@@ -42,8 +43,7 @@
   (setq dashboard-items '((recents . 5)
                           (agenda . 5 )
                           (bookmarks . 3)
-                          (projects . 3)
-                          (registers . 3)))
+                          (projects . 3)))
   :custom 
   (dashboard-modify-heading-icons '((recents . "file-text")
 				      (bookmarks . "book")))
@@ -114,6 +114,39 @@
   (elfeed-goodies/setup)
   :config
   (setq elfeed-goodies/entry-pane-size 0.5))
+
+(use-package ellama
+  :init
+  (setopt ellama-keymap-prefix "C-c e")  ;; keymap for all ellama functions
+  (setopt ellama-language "English")     ;; language ellama should translate to
+  (require 'llm-ollama)
+  (setopt ellama-provider
+	  (make-llm-ollama
+	   ;; this model should be pulled to use it
+	   ;; value should be the same as you print in terminal during pull
+	   :chat-model "llama3.1"
+	   :embedding-model "nomic-embed-text"
+	   :default-chat-non-standard-params '(("num_ctx" . 8192))))
+  ;; Predefined llm providers for interactive switching.
+  (setopt ellama-providers
+		    '(("zephyr" . (make-llm-ollama
+				   :chat-model "zephyr"
+				   :embedding-model "zephyr"))
+
+		      ("llama3.1" . (make-llm-ollama
+				   :chat-model "llama3.1"
+				   :embedding-model "llama3.1"))
+		      ("mixtral" . (make-llm-ollama
+				    :chat-model "mixtral"
+				    :embedding-model "mixtral"))))
+  (setopt ellama-naming-scheme 'ellama-generate-name-by-llm)
+  ;; Translation llm provider
+  (setopt ellama-translation-provider (make-llm-ollama
+				       :chat-model "mixtral"
+				       :embedding-model "nomic-embed-text"))
+  :config
+  (setq ellama-sessions-directory "~/.config/emacs/ellama-sessions/"
+        ellama-sessions-auto-save t))
 
 (use-package eradio
   :init
@@ -209,6 +242,14 @@
 (global-set-key (kbd "<C-wheel-up>") 'text-scale-increase)
 (global-set-key (kbd "<C-wheel-down>") 'text-scale-decrease)
 
+(use-package nerd-icons
+  ;; :custom
+  ;; The Nerd Font you want to use in GUI
+  ;; "Symbols Nerd Font Mono" is the default and is recommended
+  ;; but you can use any other Nerd Font if you want
+  ;; (nerd-icons-font-family "Symbols Nerd Font Mono")
+  )
+
 (use-package general
   :config
   (general-evil-setup)
@@ -227,6 +268,17 @@
     "TAB TAB" '(comment-line :wk "Comment lines")
     "u" '(universal-argument :wk "Universal argument"))
 
+   (dt/leader-keys
+    "a" '(:ignore t :wk "A.I.")
+    "a a" '(ellama-ask-about :wk "Ask ellama about region")
+    "a e" '(:ignore t :wk "Ellama enhance")
+    "a e g" '(ellama-improve-grammar :wk "Ellama enhance wording")
+    "a e w" '(ellama-improve-wording :wk "Ellama enhance grammar")
+    "a i" '(ellama-chat :wk "Ask ellama")
+    "a p" '(ellama-provider-select :wk "Ellama provider select")
+    "a s" '(ellama-summarize :wk "Ellama summarize region")
+    "a t" '(ellama-translate :wk "Ellama translate region"))
+   
   (dt/leader-keys
     "b" '(:ignore t :wk "Bookmarks/Buffers")
     "b b" '(switch-to-buffer :wk "Switch to buffer")
@@ -264,6 +316,7 @@
     "e F" '(ediff-files3 :wk "Run ediff on three files")
     "e h" '(counsel-esh-history :which-key "Eshell history")
     "e l" '(eval-last-sexp :wk "Evaluate elisp expression before point")
+    "e n" '(eshell-new :wk "Create new eshell buffer")
     "e r" '(eval-region :wk "Evaluate elisp in region")
     "e R" '(eww-reload :which-key "Reload current page in EWW")
     "e s" '(eshell :which-key "Eshell")
@@ -433,8 +486,6 @@
     (evil-define-key 'normal git-timemachine-mode-map (kbd "C-k") 'git-timemachine-show-next-revision)
 )
 
-(use-package magit)
-
 (use-package hl-todo
   :hook ((org-mode . hl-todo-mode)
          (prog-mode . hl-todo-mode))
@@ -517,11 +568,13 @@
                  (make-local-variable 'auto-hscroll-mode)
                  (setq auto-hscroll-mode nil)))))
 
-(eval-after-load 'org-indent '(diminish 'org-indent-mode))
+(setq org-agenda-files '("~/.config/emacs/agenda.org"))
 
 (add-hook 'org-mode-hook 'org-indent-mode)
 (use-package org-bullets)
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
+
+(eval-after-load 'org-indent '(diminish 'org-indent-mode))
 
   (custom-set-faces
    '(org-level-1 ((t (:inherit outline-1 :height 1.7))))
@@ -539,6 +592,10 @@
 (use-package toc-org
     :commands toc-org-enable
     :init (add-hook 'org-mode-hook 'toc-org-enable))
+
+(use-package ox-hugo
+  :ensure t   ;Auto-install the package from Melpa
+  :after ox)
 
 (use-package pdf-tools
   :defer t
@@ -609,6 +666,23 @@
 (setq use-file-dialog nil)   ;; No file dialog
 (setq use-dialog-box nil)    ;; No dialog box
 (setq pop-up-windows nil)    ;; No popup windows
+
+;; Disabling company mode in eshell, because it's annoying.
+(setq company-global-modes '(not eshell-mode))
+
+;; Adding a keybinding for 'pcomplete-list' on F9 key.
+(add-hook 'eshell-mode-hook
+          (lambda ()
+            (define-key eshell-mode-map (kbd "<f9>") #'pcomplete-list)))
+
+;; A function for easily creating multiple buffers of 'eshell'.
+;; NOTE: `C-u M-x eshell` would also create new 'eshell' buffers.
+(defun eshell-new (name)
+  "Create new eshell buffer named NAME."
+  (interactive "sName: ")
+  (setq name (concat "$" name))
+  (eshell)
+  (rename-buffer name))
 
 (use-package eshell-toggle
   :custom
